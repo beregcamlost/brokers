@@ -69,7 +69,7 @@ const createProducer = (brokerClient: BrokerClientType, brokerOptions: BrokerPub
      */
     const queueInstance = (client as ServiceBusClient).createSender(record.topic);
     return queueInstance.sendMessages({
-      body: JSON.parse(xss(JSON.stringify(record.data))),
+      body: JSON.parse(xss(JSON.stringify(record.data || ''))),
     });
   };
   

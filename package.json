@@ -4,12 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "Antoniojose Figueroa <antoniojose.figueroaf@gmail.com>",
-  "contributors": ["Yanny Hernandez <yan.hernan.551@gmail.com>"],
+  "contributors": [
+    "Yanny Hernandez <yan.hernan.551@gmail.com>"
+  ],
   "license": "GPL",
   "devDependencies": {
+    "@babel/preset-env": "^7.14.2",
     "@babel/preset-typescript": "^7.13.0",
     "@types/node": "^15.0.2",
     "@types/pino": "^6.3.8",

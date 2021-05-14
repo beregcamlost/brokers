@@ -2,13 +2,13 @@ jest.mock('kafkajs');
 jest.mock('@google-cloud/pubsub');
 jest.mock('@azure/service-bus');
 import kafkajs from 'kafkajs';
-import pubsub from '@google-cloud/pubsub';
-import servicebus from '@azure/service-bus';
+import * as pubsub from '@google-cloud/pubsub';
+import * as servicebus from '@azure/service-bus';
 const {
   createPool,
   createBroker,
   createContextMessage,
-} = require('../../app/utils/broker');
+} = require('../../src/');
 
 describe('Test Cases: Broker utils', () => {
   it('Test Case Create Broker Kafka', () => {
