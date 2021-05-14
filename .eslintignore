@@ -1,0 +1,15 @@
+node_modules
+dist
+lib/internal/v8_prof_polyfill.js
+lib/punycode.js
+tests/addons/??_*
+tests/fixtures
+tests/message/esm_display_syntax_error.mjs
+tools/icu
+tools/lint-md.js
+tools/node-lint-md-cli-rollup/dist
+benchmark/tmp
+doc/**/*.js
+!.eslintrc.js
+jest.config.js
+.vscode
