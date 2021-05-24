@@ -1,9 +1,11 @@
 node_modules
 dist
+babel.config.js
 lib/internal/v8_prof_polyfill.js
 lib/punycode.js
 tests/addons/??_*
 tests/fixtures
+tests/**/*;
 tests/message/esm_display_syntax_error.mjs
 tools/icu
 tools/lint-md.js

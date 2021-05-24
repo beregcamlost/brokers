@@ -3,7 +3,7 @@ import { PubSub } from '@google-cloud/pubsub';
 import { ArgsBroker, BrokerClientType, BrokerProducer, MessageBroker, MessageBrokerValue, TopicBorker } from '@def/broker-producer';
 import { Kafka, Message, ProducerRecord } from 'kafkajs';
 import xss from 'xss';
-import { BrokerPublisher } from '@def/broker-publisher';
+import { BrokerConfiguration } from '@def/broker-config';
 
 /**
  * create producer from event
@@ -11,7 +11,7 @@ import { BrokerPublisher } from '@def/broker-publisher';
  * @param {*} brokerOptions
  * @returns {Producer}
  */
-const createProducer = (brokerClient: BrokerClientType, brokerOptions: BrokerPublisher): BrokerProducer => {
+const createProducer = (brokerClient: BrokerClientType, brokerOptions: BrokerConfiguration): BrokerProducer => {
   const defaultRecord = {
     topic: '',
     data: undefined,

@@ -1,9 +1,30 @@
 import { Kafka } from 'kafkajs';
-import { PubSub }  from '@google-cloud/pubsub';
+import { PubSub } from '@google-cloud/pubsub';
 import { ServiceBusClient } from '@azure/service-bus';
 import { createProducer } from './producer';
 import { createConsumer } from './consumer';
-import { BrokerInterface, BrokerPublisherInterface, ListenerConfigurationInterface, ListenerInterface, PoolInterface } from '../../interfaces';
+import { BrokerConfiguration } from './types/broker-config';
+import { BrokerProducer } from './types/broker-producer';
+import { BrokerConsumer } from './types/broker-consumer';
+
+export type BrokerTypeError = Error | string | boolean;
+
+export interface BrokerError {
+  setError: (error: BrokerTypeError) => void;
+  haveError: () => boolean;
+}
+
+export interface Broker extends BrokerError {
+  check: () => Promise<boolean>;
+  producer: BrokerProducer;
+  consumer: BrokerConsumer;
+}
+
+export interface PoolBroker extends BrokerError {
+  addBroker: (alias: string, broker: Broker) => void;
+  getBroker: (alias: string) => Broker;
+  map: (func: (arg0: Broker) => Broker) => Broker[]
+}
 
 type BrokerClientType = Kafka | ServiceBusClient | PubSub | null
 
@@ -23,7 +44,7 @@ type BrokerClientType = Kafka | ServiceBusClient | PubSub | null
 /**
  * @param {BrokerPublisherOption} brokerOptions
  */
-const createBroker = (brokerOptions: BrokerPublisherInterface): BrokerInterface => {
+const createBroker: (brokerOptions: BrokerConfiguration) => Broker = (brokerOptions) => {
   /**
    * @type {(ServiceBusClient|Kafka|PubSub)}
    */
@@ -33,15 +54,27 @@ const createBroker = (brokerOptions: BrokerPublisherInterface): BrokerInterface 
    * create client kafak
    * @param {KafkaOption} options
    */
-  const createKafka = (options: BrokerPublisherInterface['kafkaOption']) => new Kafka(options);
+  const createKafka = (option: BrokerConfiguration) => {
+    if (!option.kafkaOption) {
+      throw new Error('Kafka config not found')
+    }
+    return new Kafka(option.kafkaOption);
+  };
 
-  const createPubSub = () => new PubSub();
+  const createPubSub = (option: BrokerConfiguration) => {
+    return new PubSub(option.clientConfig);
+  }
 
-  const createServiceBus = (strConn: BrokerPublisherInterface['serviceBusStrCnn']) => new ServiceBusClient(strConn);
+  const createServiceBus = (option: BrokerConfiguration) => {
+    if (!option.serviceBusStrCnn) {
+      throw new Error('Servicebus string connection not found')
+    }
+    return new ServiceBusClient(option.serviceBusStrCnn);
+  }
   /**
    * @type {boolean|String}
    */
-  let err: string | boolean = false;
+  let err: BrokerTypeError = false;
 
   /**
    * create publisher instance to create message
@@ -51,13 +84,13 @@ const createBroker = (brokerOptions: BrokerPublisherInterface): BrokerInterface 
   const initBroker = () => {
     switch (brokerOptions.type) {
       case 'kafka':
-        brokerClient = createKafka(brokerOptions.kafkaOption);
+        brokerClient = createKafka(brokerOptions);
         break;
       case 'servicebus':
-        brokerClient = createServiceBus(brokerOptions.serviceBusStrCnn);
+        brokerClient = createServiceBus(brokerOptions);
         break;
       case 'pubsub':
-        brokerClient = createPubSub();
+        brokerClient = createPubSub(brokerOptions);
         break;
       default:
         brokerClient = null;
@@ -70,12 +103,12 @@ const createBroker = (brokerOptions: BrokerPublisherInterface): BrokerInterface 
   const brokerProducer = createProducer(brokerClient, brokerOptions);
   const brokerConsumer = createConsumer(brokerClient, brokerOptions);
   let producerKafka;
-  
+
   const check = async () => {
     if (!brokerClient) {
       throw new Error('Broker client not found');
     }
-    
+
     switch (brokerOptions.type) {
       case 'kafka':
         producerKafka = (brokerClient as Kafka).producer();
@@ -91,17 +124,17 @@ const createBroker = (brokerOptions: BrokerPublisherInterface): BrokerInterface 
         throw new Error('type invalid');
     }
   };
-  const setError = (error: string | boolean) => {
+  const setError = (error: BrokerTypeError) => {
     err = error;
   };
-  const haveError = () => err;
+  const haveError = () => !!err;
   return {
     check,
     producer: brokerProducer,
     consumer: brokerConsumer,
     setError,
     haveError,
-  };
+  } as Broker;
 };
 
 /**
@@ -129,10 +162,10 @@ const createBroker = (brokerOptions: BrokerPublisherInterface): BrokerInterface 
 /**
  * @returns {PoolBroker}
  */
-const createPool = (): PoolInterface => {
-  const pool: Record<string, BrokerInterface> = {};
+const createPool = (): PoolBroker => {
+  const pool: Record<string, Broker> = {};
   const aliases: Array<string> = [];
-  const addBroker = (alias: string, broker: BrokerInterface) => {
+  const addBroker = (alias: string, broker: Broker) => {
     pool[alias] = broker;
     aliases.push(alias);
   };/**
@@ -147,13 +180,13 @@ const createPool = (): PoolInterface => {
     }
     return broker;
   };
-  const map = (func: (arg0: BrokerInterface) => BrokerInterface) => aliases.map((alias) => func(pool[alias]));
+  const map = (func: (arg0: Broker) => Broker) => aliases.map((alias) => func(pool[alias]));
 
-  let err = false;
-  const setError = (error: boolean) => {
+  let err: string | boolean | Error = false;
+  const setError = (error: boolean | Error | string) => {
     err = error;
   };
-  const haveError = () => err;
+  const haveError = () => !!err;
   return {
     addBroker,
     getBroker,
@@ -163,18 +196,4 @@ const createPool = (): PoolInterface => {
   };
 };
 
-/**
- * Injects in each message the information of connection to database and configurations,
- * in the context key
- * @param {*} args object with, db, log and config from app
- * @param {*} onMessage handler to processing event received
- * @deprecated
- */
- const createContextMessage = (args: ListenerInterface, onMessage: ListenerConfigurationInterface['onMessage']) => (msg: any) => {
-  const msgMutable = msg;
-  msgMutable.context = args;
-  
-  return onMessage(msgMutable);
-};
-
-export { createBroker, createPool, createContextMessage };
+export { createBroker, createPool };

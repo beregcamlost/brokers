@@ -1,7 +1,7 @@
 import { Consumer, Kafka } from 'kafkajs';
 import { ServiceBusClient } from '@azure/service-bus';
 import { PubSub } from '@google-cloud/pubsub';
-import { BrokerPublisher } from '@def/broker-publisher';
+import { BrokerConfiguration } from '@def/broker-config';
 import { BrokerConsumer } from '@def/broker-consumer';
 import { ListenerConfiguration } from '@def/listener-configuration';
 
@@ -13,7 +13,7 @@ type BrokerClientType = Kafka | ServiceBusClient | PubSub | null
  * @param {*} brokerOptions
  * @returns {Consumer}
  */
-const createConsumer = (brokerClient: BrokerClientType, brokerOptions: BrokerPublisher): BrokerConsumer => {
+const createConsumer = (brokerClient: BrokerClientType, brokerOptions: BrokerConfiguration): BrokerConsumer => {
   /**
    * @callback messageReceived
    * @param {*} message
@@ -40,6 +40,9 @@ const createConsumer = (brokerClient: BrokerClientType, brokerOptions: BrokerPub
    * @param {BrokerOptionSubscriber} options
    */
   const createReceiverKafka = async (client: BrokerClientType, options: ListenerConfiguration) => {
+    if (!brokerOptions.kafkaOption) {
+      throw new Error('Config not found');
+    }
     /**
      * @type {import('kafkajs').Consumer}
      */
@@ -72,14 +75,14 @@ const createConsumer = (brokerClient: BrokerClientType, brokerOptions: BrokerPub
               }),
               {},
             ),
-            key: message.key.toString(),
+            key: message?.key?.toString(),
             value: (message.value || '').toString(),
           });
 
           try {
             messageProcessor[topic].onMessage(message);
           } catch (err) {
-            messageProcessor[topic].onError(message);
+            messageProcessor[topic].onError(err);
           }
         },
       });
@@ -136,7 +139,7 @@ const createConsumer = (brokerClient: BrokerClientType, brokerOptions: BrokerPub
 
   return {
     addListener,
-  };
+  } as BrokerConsumer;
 };
 
 /**

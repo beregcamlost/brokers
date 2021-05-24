@@ -4,5 +4,5 @@ export interface BrokerConsumer {
   /**
    * Add Listener Function
    */
-  addListener: (options: ListenerConfiguration) => Promise<void>;
+  addListener: <T, K> (options: ListenerConfiguration<T, K>) => Promise<void>;
 }
