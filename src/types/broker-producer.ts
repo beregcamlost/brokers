@@ -6,7 +6,7 @@ export interface BrokerProducer {
   /**
    * Add Publish Function
    */
-  publish: (topic: string, message: MessageBroker, args: ArgsBroker) => Promise<string> | Promise<Array<RecordMetadata>> | Promise<void>;
+  publish: (topic: string, message: MessageBroker, args?: ArgsBroker) => Promise<string> | Promise<Array<RecordMetadata>> | Promise<void>;
 }
 export type MessageBrokerValue = {
   data: string | any;

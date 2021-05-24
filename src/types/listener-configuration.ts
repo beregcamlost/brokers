@@ -1,4 +1,4 @@
-export interface ListenerConfiguration {
+export interface ListenerConfiguration<T = unknown, K = unknown> {
   /**
    * Listener Topic
    */
@@ -6,11 +6,11 @@ export interface ListenerConfiguration {
   /**
    * onMessage function
    */
-   onMessage: (message: any) => void,
+   onMessage:  (this: T, message: K) => void,
   /**
    * onError function
    */
-  onError: (error: any) => void,
+  onError: (this: T, error: Error) => void,
 }
 
 //message and error are unknown because the values can be different depending of the interface 
