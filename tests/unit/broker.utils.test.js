@@ -79,6 +79,7 @@ describe('Test Cases: Broker utils', () => {
       connect: jest.fn(() => Promise.resolve()),
       send: jest.fn(),
       disconnect: jest.fn(() => Promise.resolve()),
+      on: jest.fn()
     });
     kafkajs.Kafka.mockImplementationOnce(() => ({
       producer: producerKafkaMock,
