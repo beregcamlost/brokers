@@ -1,7 +1,7 @@
 import { ServiceBusClient } from '@azure/service-bus';
 import { PubSub } from '@google-cloud/pubsub';
 import { ArgsBroker, BrokerClientType, BrokerProducer, MessageBroker, MessageBrokerValue, TopicBorker } from '@def/broker-producer';
-import { Kafka, Message, ProducerRecord } from 'kafkajs';
+import { Kafka, Message, ProducerRecord, Producer } from 'kafkajs';
 import xss from 'xss';
 import { BrokerConfiguration } from '@def/broker-config';
 
@@ -17,7 +17,7 @@ const createProducer = (brokerClient: BrokerClientType, brokerOptions: BrokerCon
     data: undefined,
     attrs: undefined,
   };
-
+  let kafkaProducer: Producer | undefined;
   /**
    *
    * @param {Kafka} client
@@ -27,10 +27,8 @@ const createProducer = (brokerClient: BrokerClientType, brokerOptions: BrokerCon
     /**
      * @type {import('kafkajs').Producer}
      */
-    const producerKafka = (client as Kafka).producer();
-    await producerKafka.connect();
-    const res = producerKafka.send(record);
-    await producerKafka.disconnect();
+    await connect(client);
+    const res = kafkaProducer!.send(record);
     return res;
   };
 
@@ -105,7 +103,27 @@ const createProducer = (brokerClient: BrokerClientType, brokerOptions: BrokerCon
         throw new Error('type invalid');
     }
   };
+  const connect = async (client: BrokerClientType) => {
+    if (kafkaProducer) {
+      throw new Error('Not closed, connection of producter active. Invoke disconnect previous')
+    }
+    const producer = kafkaProducer ? kafkaProducer : (client as Kafka).producer();
+    if (!kafkaProducer) {
+      kafkaProducer = producer;
+      await producer.connect();
+      producer.on('producer.disconnect', () => {
+        kafkaProducer = undefined;
+      });
+    }
+  }
+  const disconnect = async () => {
+    if (kafkaProducer && brokerOptions.type === 'kafka') {
+      kafkaProducer.disconnect();
+    }
+  }
   return {
+    connect,
+    disconnect,
     publish: publishMessage,
   };
 };

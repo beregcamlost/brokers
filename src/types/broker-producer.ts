@@ -7,6 +7,14 @@ export interface BrokerProducer {
    * Add Publish Function
    */
   publish: (topic: string, message: MessageBroker, args?: ArgsBroker) => Promise<string> | Promise<Array<RecordMetadata>> | Promise<void>;
+  /**
+   * only used to kafka brokers
+   */
+  connect: (client: BrokerClientType) => Promise<void>
+  /**
+   * only used to kafka brokers
+   */
+  disconnect: (client: BrokerClientType) => Promise<void>
 }
 export type MessageBrokerValue = {
   data: string | any;
